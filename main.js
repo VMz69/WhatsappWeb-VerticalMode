@@ -4,10 +4,8 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 550,
     height: 800,
-    resizable: true,
-
-    autoHideMenuBar: true, // extra seguridad
-
+    resizable: false,
+    autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -15,63 +13,36 @@ function createWindow() {
   });
 
   win.webContents.setUserAgent(
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
   );
 
   win.loadURL("https://web.whatsapp.com");
 
-  win.webContents.on("did-finish-load", () => {
-    win.webContents.setZoomFactor(0.9);
+  let hackApplied = false;
+
+  function applyHack() {
+    if (hackApplied) return;
+    hackApplied = true;
 
     win.webContents.executeJavaScript(`
-      setTimeout(() => {
+      (function () {
         const app = document.querySelector('#app');
         if (!app) return;
 
-        // ================================
-        // 🔥 BLOQUEO TOTAL DE SCROLL BARS
-        // ================================
-        const style = document.createElement('style');
-        style.innerHTML = \`
-          html, body {
-            overflow: hidden !important;
-          }
-
-          *::-webkit-scrollbar {
-            width: 0px !important;
-            height: 0px !important;
-          }
-
-          * {
-            scrollbar-width: none !important; /* Firefox */
-          }
-        \`;
-        document.head.appendChild(style);
-
-        // ================================
-        // LAYOUT HACK
-        // ================================
         app.style.display = 'flex';
         app.style.flexDirection = 'row';
         app.style.width = '200%';
-        app.style.overflow = 'hidden';
 
         const children = app.children;
-        for (let child of children) {
-          child.style.width = '100%';
-          child.style.flexShrink = '0';
-          child.style.overflow = 'hidden';
+        for (let c of children) {
+          c.style.width = '100%';
+          c.style.flexShrink = '0';
         }
 
-        // ================================
-        // FIND SCROLL CONTAINER
-        // ================================
         function findScrollable() {
           const all = document.querySelectorAll('*');
           for (let el of all) {
-            if (el.scrollWidth > el.clientWidth + 50) {
-              return el;
-            }
+            if (el.scrollWidth > el.clientWidth + 50) return el;
           }
           return null;
         }
@@ -79,44 +50,52 @@ function createWindow() {
         const scrollContainer = findScrollable();
         if (!scrollContainer) return;
 
-        scrollContainer.style.overflow = 'hidden';
-
-        let ignoreNextClick = false;
+        let ignore = false;
 
         // ================================
-        // BOTÓN ATRÁS
+        // BOTÓN ATRÁS (FIX VISUAL LIMPIO)
         // ================================
         const backBtn = document.createElement('button');
         backBtn.id = 'back-btn';
 
-        backBtn.innerHTML = \`
-          <svg width="20" height="20" viewBox="0 0 24 24">
-            <path d="M15 18L9 12L15 6"
-              stroke="white"
-              stroke-width="2.5"
-              stroke-linecap="round"
-              stroke-linejoin="round"/>
-          </svg>
-        \`;
+        backBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+        // posición
         backBtn.style.position = 'fixed';
         backBtn.style.top = '4.1rem';
-        backBtn.style.right = '12px';
+        backBtn.style.right = '14px';
 
-        backBtn.style.width = '44px';
-        backBtn.style.height = '44px';
+        // tamaño perfecto círculo
+        backBtn.style.width = '46px';
+        backBtn.style.height = '46px';
         backBtn.style.display = 'flex';
         backBtn.style.alignItems = 'center';
         backBtn.style.justifyContent = 'center';
-        backBtn.style.borderRadius = '50%';
 
-        backBtn.style.zIndex = '9999';
+        // diseño
+        backBtn.style.borderRadius = '50%';
         backBtn.style.border = 'none';
         backBtn.style.background = '#25D366';
         backBtn.style.cursor = 'pointer';
-        backBtn.style.boxShadow = '0 6px 16px rgba(0,0,0,0.3)';
-        backBtn.style.transition = 'all 0.2s ease';
+        backBtn.style.zIndex = '9999';
 
+        // sombra suave (mejor estética)
+        backBtn.style.boxShadow = '0 8px 18px rgba(0,0,0,0.25)';
+
+        // animación hover suave
+        backBtn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
+
+        backBtn.onmouseenter = () => {
+          backBtn.style.transform = 'scale(1.08)';
+          backBtn.style.boxShadow = '0 10px 22px rgba(0,0,0,0.3)';
+        };
+
+        backBtn.onmouseleave = () => {
+          backBtn.style.transform = 'scale(1)';
+          backBtn.style.boxShadow = '0 8px 18px rgba(0,0,0,0.25)';
+        };
+
+        // estado inicial oculto
         backBtn.style.opacity = '0';
         backBtn.style.pointerEvents = 'none';
 
@@ -140,8 +119,8 @@ function createWindow() {
         document.addEventListener('click', (e) => {
           if (e.target.closest('#back-btn')) return;
 
-          if (ignoreNextClick) {
-            ignoreNextClick = false;
+          if (ignore) {
+            ignore = false;
             return;
           }
 
@@ -150,13 +129,12 @@ function createWindow() {
 
             backBtn.style.opacity = '1';
             backBtn.style.pointerEvents = 'auto';
-
           }, 300);
         });
 
         backBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          ignoreNextClick = true;
+          ignore = true;
 
           goLeft();
 
@@ -164,8 +142,25 @@ function createWindow() {
           backBtn.style.pointerEvents = 'none';
         });
 
-      }, 3000);
+      })();
     `);
+  }
+
+  // 🔥 DETECCIÓN FUERA DEL DOM (SIN LOOP DE JS INTERNO)
+  win.webContents.on('did-finish-load', () => {
+
+    const interval = setInterval(async () => {
+
+      const hasMain = await win.webContents.executeJavaScript(
+        "!!document.querySelector('#main')"
+      );
+
+      if (hasMain) {
+        clearInterval(interval);
+        setTimeout(applyHack, 3000);
+      }
+
+    }, 1000);
   });
 }
 

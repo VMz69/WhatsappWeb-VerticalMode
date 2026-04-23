@@ -12,6 +12,17 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^41.3.0"
+    "electron": "^41.3.0",
+    "electron-builder": "^26.8.1"
+  },
+
+  "build": {
+  "appId": "com.tuapp.whatsapp",
+  "productName": "WhatsAppHack",
+  "linux": {
+    "target": "AppImage",
+    "icon": "build/icons"
+    }
   }
+
 }
