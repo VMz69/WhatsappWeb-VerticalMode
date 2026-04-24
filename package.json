@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "dist": "electron-builder",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -15,14 +16,29 @@
     "electron": "^41.3.0",
     "electron-builder": "^26.8.1"
   },
-
   "build": {
-  "appId": "com.tuapp.whatsapp",
-  "productName": "WhatsAppHack",
-  "linux": {
-    "target": "AppImage",
-    "icon": "build/icons"
+    "appId": "com.tuapp.whatsapp",
+    "productName": "WhatsAppHack",
+
+    "directories": {
+      "output": "dist"
+    },
+
+    "files": [
+      "**/*"
+    ],
+
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icons/512x512.png"
+    },
+
+    "win": {
+      "icon": "build/icons/icon.ico"
+    },
+
+    "mac": {
+      "icon": "build/icons/icon.icns"
     }
   }
-
 }
