@@ -113,18 +113,28 @@ function createWindow() {
           if (e.target.closest('#back-btn')) return;
           if (e.target.closest('#main')) return;
 
+          // Ignorar clicks en menús, modales y overlays del panel izquierdo
+          if (e.target.closest('[role="dialog"]')) return;
+          if (e.target.closest('[role="menu"]')) return;
+          if (e.target.closest('[data-testid="popup-contents"]')) return;
+
+          // FIX: resetear ignore siempre al llegar aquí,
+          // independientemente de si navegamos o no
           if (ignore) {
             ignore = false;
             return;
           }
 
-          setTimeout(() => goRight(), 300);
+          goRight();
         });
 
         backBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          ignore = true;
+          // FIX: usar setTimeout para que ignore se active DESPUÉS
+          // de que el evento de click del backBtn termine su propagación,
+          // evitando que afecte clicks subsiguientes en la lista
           goLeft();
+          setTimeout(() => { ignore = false; }, 50);
         });
 
         // ================================
@@ -152,6 +162,56 @@ function createWindow() {
         panelObserver.observe(document.body, {
           childList: true,
           subtree: true,
+        });
+
+        // ================================
+        // MANEJO DE RESIZE / MAXIMIZAR
+        // ================================
+        const BREAKPOINT = 768;
+
+        function enableHackLayout() {
+          app.style.display = 'flex';
+          app.style.flexDirection = 'row';
+          app.style.width = '200%';
+          for (let c of app.children) {
+            c.style.width = '100%';
+            c.style.flexShrink = '0';
+          }
+          backBtn.style.display = 'flex';
+        }
+
+        function disableHackLayout() {
+          app.style.display = '';
+          app.style.flexDirection = '';
+          app.style.width = '';
+          for (let c of app.children) {
+            c.style.width = '';
+            c.style.flexShrink = '';
+          }
+          // Resetear scroll y ocultar botón atrás
+          lockScroll = false;
+          chatPanelLeft = 0;
+          scrollContainer.scrollLeft = 0;
+          backBtn.style.opacity = '0';
+          backBtn.style.pointerEvents = 'none';
+          backBtn.style.display = 'none';
+        }
+
+        let wideMode = window.innerWidth >= BREAKPOINT;
+        if (wideMode) disableHackLayout();
+
+        window.addEventListener('resize', () => {
+          const isWide = window.innerWidth >= BREAKPOINT;
+
+          if (isWide && !wideMode) {
+            // Pasó a modo ancho: desactivar hack
+            wideMode = true;
+            disableHackLayout();
+          } else if (!isWide && wideMode) {
+            // Volvió a modo angosto: reactivar hack
+            wideMode = false;
+            enableHackLayout();
+          }
         });
 
       })();
