@@ -4,7 +4,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 550,
     height: 800,
-    resizable: false,
+    resizable: true,
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
@@ -39,18 +39,11 @@ function createWindow() {
           c.style.flexShrink = '0';
         }
 
-        function findScrollable() {
-          const all = document.querySelectorAll('*');
-          for (let el of all) {
-            if (el.scrollWidth > el.clientWidth + 50) return el;
-          }
-          return null;
-        }
-
-        const scrollContainer = findScrollable();
-        if (!scrollContainer) return;
+        const scrollContainer = document.documentElement;
 
         let ignore = false;
+        let lockScroll = false;
+        let chatPanelLeft = 0;
 
         // ================================
         // BOTÓN ATRÁS (FIX VISUAL LIMPIO)
@@ -60,93 +53,109 @@ function createWindow() {
 
         backBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 18L9 12L15 6" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-        // posición
         backBtn.style.position = 'fixed';
         backBtn.style.top = '4.1rem';
         backBtn.style.right = '14px';
-
-        // tamaño perfecto círculo
         backBtn.style.width = '46px';
         backBtn.style.height = '46px';
         backBtn.style.display = 'flex';
         backBtn.style.alignItems = 'center';
         backBtn.style.justifyContent = 'center';
-
-        // diseño
         backBtn.style.borderRadius = '50%';
         backBtn.style.border = 'none';
         backBtn.style.background = '#25D366';
         backBtn.style.cursor = 'pointer';
         backBtn.style.zIndex = '9999';
-
-        // sombra suave (mejor estética)
         backBtn.style.boxShadow = '0 8px 18px rgba(0,0,0,0.25)';
-
-        // animación hover suave
         backBtn.style.transition = 'transform 0.15s ease, box-shadow 0.15s ease';
 
         backBtn.onmouseenter = () => {
           backBtn.style.transform = 'scale(1.08)';
           backBtn.style.boxShadow = '0 10px 22px rgba(0,0,0,0.3)';
         };
-
         backBtn.onmouseleave = () => {
           backBtn.style.transform = 'scale(1)';
           backBtn.style.boxShadow = '0 8px 18px rgba(0,0,0,0.25)';
         };
 
-        // estado inicial oculto
         backBtn.style.opacity = '0';
         backBtn.style.pointerEvents = 'none';
-
         document.body.appendChild(backBtn);
 
         function goRight() {
-          const width = scrollContainer.getBoundingClientRect().width;
-          scrollContainer.scrollTo({
-            left: Math.round(width),
-            behavior: 'smooth'
-          });
+          lockScroll = false;
+          const width = window.innerWidth;
+          scrollContainer.scrollLeft = width;
+          chatPanelLeft = scrollContainer.scrollLeft;
+          setTimeout(() => { lockScroll = true; }, 400);
+          backBtn.style.opacity = '1';
+          backBtn.style.pointerEvents = 'auto';
         }
 
         function goLeft() {
-          scrollContainer.scrollTo({
-            left: 0,
-            behavior: 'smooth'
-          });
+          lockScroll = false;
+          scrollContainer.scrollLeft = 0;
+          chatPanelLeft = 0;
+          backBtn.style.opacity = '0';
+          backBtn.style.pointerEvents = 'none';
         }
+
+        window.addEventListener('scroll', () => {
+          if (!lockScroll) return;
+          if (scrollContainer.scrollLeft < chatPanelLeft - 10) {
+            scrollContainer.scrollLeft = chatPanelLeft;
+          }
+        }, { passive: false });
 
         document.addEventListener('click', (e) => {
           if (e.target.closest('#back-btn')) return;
+          if (e.target.closest('#main')) return;
 
           if (ignore) {
             ignore = false;
             return;
           }
 
-          setTimeout(() => {
-            goRight();
-
-            backBtn.style.opacity = '1';
-            backBtn.style.pointerEvents = 'auto';
-          }, 300);
+          setTimeout(() => goRight(), 300);
         });
 
         backBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           ignore = true;
-
           goLeft();
+        });
 
-          backBtn.style.opacity = '0';
-          backBtn.style.pointerEvents = 'none';
+        // ================================
+        // FIX: ANCLAR expressions-panel
+        // a la derecha del viewport
+        // ================================
+        const panelObserver = new MutationObserver(() => {
+          const panel = document.querySelector('[data-testid="expressions-panel"]');
+          if (!panel || panel._fixed) return;
+          panel._fixed = true;
+
+          const parent = panel.parentElement;
+          parent.style.left = 'auto';
+          parent.style.right = '0px';
+
+          const unmountObserver = new MutationObserver(() => {
+            if (!document.contains(panel)) {
+              panel._fixed = false;
+              unmountObserver.disconnect();
+            }
+          });
+          unmountObserver.observe(document.body, { childList: true, subtree: true });
+        });
+
+        panelObserver.observe(document.body, {
+          childList: true,
+          subtree: true,
         });
 
       })();
     `);
   }
 
-  // 🔥 DETECCIÓN FUERA DEL DOM (SIN LOOP DE JS INTERNO)
   win.webContents.on('did-finish-load', () => {
 
     const interval = setInterval(async () => {
