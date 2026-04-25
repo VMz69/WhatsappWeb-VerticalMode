@@ -118,8 +118,6 @@ function createWindow() {
           if (e.target.closest('[role="menu"]')) return;
           if (e.target.closest('[data-testid="popup-contents"]')) return;
 
-          // FIX: resetear ignore siempre al llegar aquí,
-          // independientemente de si navegamos o no
           if (ignore) {
             ignore = false;
             return;
@@ -130,11 +128,19 @@ function createWindow() {
 
         backBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          // FIX: usar setTimeout para que ignore se active DESPUÉS
-          // de que el evento de click del backBtn termine su propagación,
-          // evitando que afecte clicks subsiguientes en la lista
           goLeft();
+          // Simular Escape para que WhatsApp deseleccione el chat
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
           setTimeout(() => { ignore = false; }, 50);
+        });
+
+        // ================================
+        // TECLA ESCAPE: volver al panel izq
+        // ================================
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && chatPanelLeft > 0) {
+            goLeft();
+          }
         });
 
         // ================================
