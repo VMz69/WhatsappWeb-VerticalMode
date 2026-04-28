@@ -47,9 +47,6 @@ function createWindow() {
         let lockScroll = false;
         let chatPanelLeft = 0;
 
-        // ================================
-        // BOTÓN ATRÁS (FIX VISUAL LIMPIO)
-        // ================================
         const backBtn = document.createElement('button');
         backBtn.id = 'back-btn';
 
@@ -113,7 +110,9 @@ function createWindow() {
           if (e.target.closest('#back-btn')) return;
           if (e.target.closest('#main')) return;
 
-          // Ignorar clicks en menús, modales y overlays del panel izquierdo
+          // 🔥 FIX: solo permitir clicks dentro de la lista de chats
+          if (!e.target.closest('#pane-side')) return;
+
           if (e.target.closest('[role="dialog"]')) return;
           if (e.target.closest('[role="menu"]')) return;
           if (e.target.closest('[data-testid="popup-contents"]')) return;
@@ -129,24 +128,16 @@ function createWindow() {
         backBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           goLeft();
-          // Simular Escape para que WhatsApp deseleccione el chat
           document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
           setTimeout(() => { ignore = false; }, 50);
         });
 
-        // ================================
-        // TECLA ESCAPE: volver al panel izq
-        // ================================
         document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape' && chatPanelLeft > 0) {
             goLeft();
           }
         });
 
-        // ================================
-        // FIX: ANCLAR expressions-panel
-        // a la derecha del viewport
-        // ================================
         const panelObserver = new MutationObserver(() => {
           const panel = document.querySelector('[data-testid="expressions-panel"]');
           if (!panel || panel._fixed) return;
@@ -170,9 +161,6 @@ function createWindow() {
           subtree: true,
         });
 
-        // ================================
-        // MANEJO DE RESIZE / MAXIMIZAR
-        // ================================
         const BREAKPOINT = 768;
 
         function enableHackLayout() {
@@ -194,7 +182,6 @@ function createWindow() {
             c.style.width = '';
             c.style.flexShrink = '';
           }
-          // Resetear scroll y ocultar botón atrás
           lockScroll = false;
           chatPanelLeft = 0;
           scrollContainer.scrollLeft = 0;
@@ -210,11 +197,9 @@ function createWindow() {
           const isWide = window.innerWidth >= BREAKPOINT;
 
           if (isWide && !wideMode) {
-            // Pasó a modo ancho: desactivar hack
             wideMode = true;
             disableHackLayout();
           } else if (!isWide && wideMode) {
-            // Volvió a modo angosto: reactivar hack
             wideMode = false;
             enableHackLayout();
           }
@@ -225,9 +210,7 @@ function createWindow() {
   }
 
   win.webContents.on('did-finish-load', () => {
-
     const interval = setInterval(async () => {
-
       const hasMain = await win.webContents.executeJavaScript(
         "!!document.querySelector('#main')"
       );
